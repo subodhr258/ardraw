@@ -8,6 +8,7 @@ import CallObjectContext from '../../CallObjectContext';
 import { roomUrlFromPageUrl, pageUrlFromRoomUrl } from '../../urlUtils';
 import DailyIframe from '@daily-co/daily-js';
 import { logDailyEvent } from '../../logUtils';
+import { OpenCvProvider, useOpenCv } from 'opencv-react';
 
 const STATE_IDLE = 'STATE_IDLE';
 const STATE_CREATING = 'STATE_CREATING';
@@ -28,7 +29,7 @@ export default function App() {
     setAppState(STATE_CREATING);
     return api
       .createRoom()
-      .then((room) => room.url)
+      .then((room) => room.url) //error coming from here because url is null??
       .catch((error) => {
         console.log('Error creating room', error);
         setRoomUrl(null);
@@ -96,9 +97,9 @@ export default function App() {
   /**
    * Uncomment to attach call object to window for debugging purposes.
    */
-  // useEffect(() => {
-  //   window.callObject = callObject;
-  // }, [callObject]);
+  useEffect(() => {
+    window.callObject = callObject;
+  }, [callObject]);
 
   /**
    * Update app state based on reported meeting state changes.
@@ -206,27 +207,29 @@ export default function App() {
   const enableStartButton = appState === STATE_IDLE;
 
   return (
-    <div className="app">
-      {showCall ? (
-        // NOTE: for an app this size, it's not obvious that using a Context
-        // is the best choice. But for larger apps with deeply-nested components
-        // that want to access call object state and bind event listeners to the
-        // call object, this can be a helpful pattern.
-        <CallObjectContext.Provider value={callObject}>
-          <Call roomUrl={roomUrl} />
-          <Tray
-            disabled={!enableCallButtons}
-            onClickLeaveCall={startLeavingCall}
+    <OpenCvProvider>
+      <div className="app">
+        {showCall ? (
+          // NOTE: for an app this size, it's not obvious that using a Context
+          // is the best choice. But for larger apps with deeply-nested components
+          // that want to access call object state and bind event listeners to the
+          // call object, this can be a helpful pattern.
+          <CallObjectContext.Provider value={callObject}>
+            <Call roomUrl={roomUrl} />
+            <Tray
+              disabled={!enableCallButtons}
+              onClickLeaveCall={startLeavingCall}
+            />
+          </CallObjectContext.Provider>
+        ) : (
+          <StartButton
+            disabled={!enableStartButton}
+            onClick={() => {
+              createCall().then((url) => startJoiningCall(url));
+            }}
           />
-        </CallObjectContext.Provider>
-      ) : (
-        <StartButton
-          disabled={!enableStartButton}
-          onClick={() => {
-            createCall().then((url) => startJoiningCall(url));
-          }}
-        />
-      )}
-    </div>
+        )}
+      </div>
+    </OpenCvProvider>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import './Tile.css';
+import { useOpenCv } from 'opencv-react';
 
 function getTrackUnavailableMessage(kind, trackState) {
   if (!trackState) return;
@@ -41,6 +42,7 @@ function getTrackUnavailableMessage(kind, trackState) {
 export default function Tile(props) {
   const videoEl = useRef(null);
   const audioEl = useRef(null);
+  const { cv } = useOpenCv();
 
   const videoTrack = useMemo(() => {
     return props.videoTrackState && props.videoTrackState.state === 'playable'
@@ -66,6 +68,13 @@ export default function Tile(props) {
    * When video track changes, update video srcObject
    */
   useEffect(() => {
+    let rawVideo = document.getElementById('rawVideo');
+    if (cv) {
+      let src = new cv.Mat(rawVideo.height, rawVideo.width, cv.CV_8UC4);
+      console.log('src:', src);
+      //imshow, imread are not working. The screen is going white...?
+    }
+
     videoEl.current &&
       (videoEl.current.srcObject = new MediaStream([videoTrack]));
   }, [videoTrack]);
@@ -79,7 +88,14 @@ export default function Tile(props) {
   }, [audioTrack]);
 
   function getVideoComponent() {
-    return videoTrack && <video autoPlay muted playsInline ref={videoEl} />;
+    return (
+      videoTrack && (
+        <>
+          <video id="rawVideo" autoPlay muted playsInline ref={videoEl} />
+          <canvas id="outputCanvas"></canvas>
+        </>
+      )
+    );
   }
 
   function getAudioComponent() {
